@@ -6,6 +6,8 @@ import { actionItemClick, menuItemClick } from "@/slice/menuSlice";
 function Board() {
   const dispatch = useDispatch();
   const canvasRef = useRef(null);
+  const drawHistory = useRef([]);
+  const historyPointer = useRef(0);
   const shouldDarw = useRef(false);
   const { activeMenuItem, actionMenuItem } = useSelector((state) => state.menu);
   const { color, size } = useSelector((state) => state.toolbox[activeMenuItem]);
@@ -22,8 +24,21 @@ function Board() {
       anchor.href = URL;
       anchor.download = "sketch.jpg";
       anchor.click();
+    } else if (
+      actionMenuItem === MENU_ITEMS.UNDO ||
+      actionMenuItem === MENU_ITEMS.REDO
+    ) {
+      if (historyPointer.current > 0 && actionMenuItem === MENU_ITEMS.UNDO)
+        historyPointer.current--;
+      if (
+        historyPointer.current < drawHistory.current.length - 1 &&
+        actionMenuItem === MENU_ITEMS.REDO
+      )
+        historyPointer.current++;
+      const imageData = drawHistory.current[historyPointer.current];
+      context.putImageData(imageData, 0, 0);
     }
-    dispatch(actionItemClick(null));
+    dispatch(actionItemClick(null)); //esse hum changes krne ke baad image download kr skte hain
     console.log("actionMenuItem", actionMenuItem);
   }, [actionMenuItem, dispatch]);
 
@@ -74,6 +89,9 @@ function Board() {
 
     const handleMouseUp = (e) => {
       shouldDarw.current = false;
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      drawHistory.current.push(imageData);
+      historyPointer.current = drawHistory.current.length - 1;
     };
 
     canvas.addEventListener("mousedown", handleMouseDown);
